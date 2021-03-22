@@ -8,8 +8,6 @@ dotenv.config();
 const username = process.env.INSTAGRAM_USERNAME; // Instagram username
 const password = process.env.INSTAGRAM_PASSWORD; // Instagram password
 
-console.log(username, password);
-
 const client = new Instagram({ username: username, password: password }); // create Instagram client
 
 await db.connect(); // connect do MongoDB Atlas
