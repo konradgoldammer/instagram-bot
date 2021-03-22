@@ -12,12 +12,12 @@ console.log(username, password);
 
 const client = new Instagram({ username: username, password: password }); // create Instagram client
 
+await db.connect(); // connect do MongoDB Atlas
+
 (async () => {
     const INTERVAL = 60; // length of interval (in minutes)
     while (true) { // repeat after certain period of time
         try {
-            await db.connect(); // connect do MongoDB Atlas
-
             await client.login(); // login to Instagram
             const profile = await client.getProfile();
 
