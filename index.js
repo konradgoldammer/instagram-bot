@@ -105,7 +105,6 @@ const client = new Instagram({ username: username, password: password }); // cre
         } catch (e) {
             console.error(e);
         } finally {
-            await client.logout();
             await db.close();
         }
         await sleep(INTERVAL * 60 * 1000); // wait for the next period
