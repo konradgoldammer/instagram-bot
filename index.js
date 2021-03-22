@@ -10,9 +10,9 @@ const password = process.env.INSTAGRAM_PASSWORD; // Instagram password
 
 const client = new Instagram({ username: username, password: password }); // create Instagram client
 
-await db.connect(); // connect do MongoDB Atlas
-
 (async () => {
+    await db.connect(); // connect do MongoDB Atlas
+
     const INTERVAL = 60; // length of interval (in minutes)
     while (true) { // repeat after certain period of time
         try {
