@@ -58,7 +58,8 @@ const db = {
                 const updateDoc = {
                     $set: {
                         active: false,
-                        cancellationTimestamp: Number(String((new Date()).getTime()).slice(0, -3))
+                        cancellationTimestamp: Number(String((new Date()).getTime()).slice(0, -3)),
+                        followedBack: abo.followedBack
                     }
                 }
                 const result = await collection.updateOne(filter, updateDoc, options);

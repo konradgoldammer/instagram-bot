@@ -94,6 +94,8 @@ const client = new Instagram({ username: username, password: password }); // cre
                     if (abo.subscriptionTimestamp < (Number(String((new Date()).getTime()).slice(0, -3)) - FOLLOW_TIME * 60 * 60) & abo.active == true) {
                         await client.unfollow({ userId: abo.ownerID });
                         console.log(`Unfollowed user with id: ${abo.ownerID}, whom you followed since ${(new Date(abo.subscriptionTimestamp * 1000)).toString()} on Instagram.`);
+                        const followedBack = (await client.getUserByUsername({ username: (await client.getMediaByShortcode({ shortcode: abo.shortcode })).owner.username })).follows_viewer; // true if user follows your account
+                        abo.followedBack = followedBack;
                         oldAbonnements.push(abo);
                     }
                 }
