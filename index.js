@@ -11,16 +11,18 @@ const password = process.env.INSTAGRAM_PASSWORD; // Instagram password
 const client = new Instagram({ username: username, password: password }); // create Instagram client
 
 (async () => {
-    await db.connect(); // connect do MongoDB Atlas
+    try {
+        await db.connect(); // connect do MongoDB Atlas
+        await client.login(); // login to Instagram
 
-    const INTERVAL = 60; // length of interval (in minutes)
-    while (true) { // repeat after certain period of time
-        try {
-            await client.login(); // login to Instagram
-            const profile = await client.getProfile();
+        const profile = await client.getProfile();
 
-            if (profile != undefined) {
-                console.log(`Logged in as ${profile.username}.`);
+        if (profile != undefined) {
+            console.log(`Logged in as ${profile.username}.`);
+
+            const INTERVAL = 60; // length of interval (in minutes)
+
+            while (true) { // repeat after certain period of time
 
                 // get posts from instagram
 
@@ -81,7 +83,6 @@ const client = new Instagram({ username: username, password: password }); // cre
                     await client.follow({ userId: post.ownerID });
                     console.log(`Followed user with id: ${post.ownerID} on Instagram.`)
                 }
-
                 await db.insertAbonnements(totalPosts);
 
                 // unfollow old people
@@ -97,14 +98,14 @@ const client = new Instagram({ username: username, password: password }); // cre
                     }
                 }
                 await db.setAbonnementsToInactive(oldAbonnements);
-            } else {
-                console.error('Error occured while logging in.');
+
+                await sleep(INTERVAL * 60 * 1000); // wait for the next period
             }
-        } catch (e) {
-            console.error(e);
+        } else {
+            console.error('Error occured while logging in.');
         }
-        
-        await sleep(INTERVAL * 60 * 1000); // wait for the next period
+    } catch (e) {
+        console.error(e);
     }
 })();
 
