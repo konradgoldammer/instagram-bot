@@ -69,7 +69,7 @@ const client = new Instagram({ username: username, password: password }); // cre
                 }
                 totalPosts = uniquePosts;
 
-                totalPosts = totalPosts.sort((a, b) => a - b); // sorting posts by timestamp (most recent posts first)
+                totalPosts = totalPosts.sort((a, b) => b.timestamp - a.timestamp); // sorting posts by timestamp (most recent posts first)
 
                 console.log(`Cut down total posts to ${totalPosts.length} posts.`);
 
