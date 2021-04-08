@@ -1,7 +1,7 @@
 const Instagram = require('instagram-web-api');
-const Post = require('./post.js');
 const db = require('./database.js');
 const dotenv = require('dotenv');
+const instagramCrawler = require('./instagramCrawler.js');
 
 dotenv.config();
 
@@ -23,71 +23,38 @@ const client = new Instagram({ username: username, password: password }); // cre
             const INTERVAL = 60; // length of interval (in minutes)
 
             while (true) { // repeat after certain period of time
+                const operation = Number(process.env.OPERATION); /* stores method that will be executed to get the people, that you are going to follow; the methods differ in the place they look for these people:
+                if 0: the programs goes through the creators of posts in certain hashtags
+                if 1: the program goes through the followers of other accounts */
 
-                // get posts from instagram
+                const ALL_ABONNEMENTS = await db.getAllAbonnements(); // every abonnement currently stored in the database
 
-                const POSTS_OF_HASHTAG = async (hashtag) => { // get most recent posts of a hashtag
-                    let rawPosts = await client.getMediaFeedByHashtag({ hashtag: hashtag });
-                    rawPosts = rawPosts.edge_hashtag_to_media.edges;
-                    const posts = [];
-                    rawPosts.forEach(rawPost => {
-                        posts.push(new Post(rawPost.node.owner.id, rawPost.node.taken_at_timestamp, rawPost.node.shortcode, hashtag));
-                    });
-                    return posts;
-                };
+                let documents;
 
-                let totalPosts = [];
-                const HASHTAGS = ['memes', 'funny', 'lol']; // hashtags to look for posts in
-
-                for (hashtag of HASHTAGS) {
-                    totalPosts = totalPosts.concat(await POSTS_OF_HASHTAG(hashtag));
-                }
-
-                console.log(`Received ${totalPosts.length} posts from ${HASHTAGS.length} hashtags.`);
-
-                // remove "invalid" posts
-
-                const ALL_ABONNEMENTS = await db.getAllAbonnements();
-
-                totalPosts.forEach(function (post, index, object) { // remove every post, that was posted by someone that you currently follow, or that you followed in the past
-                    for (abo of ALL_ABONNEMENTS) {
-                        if (post.ownerID == abo.ownerID) {
-                            object.splice(index, 1);
-                            break;
-                        }
-                    }
-                });
-
-                let uniquePosts = []; // remove posts by people, who are already included in one post
-                outerLoop: for (post of totalPosts) {
-                    for (p of totalPosts) {
-                        if (p.ownerID === post.ownerID & p.shortcode != post.shortcode) {
-                            continue outerLoop;
-                        }
-                    }
-                    uniquePosts.push(post);
-                }
-                totalPosts = uniquePosts;
-
-                totalPosts = totalPosts.sort((a, b) => b.timestamp - a.timestamp); // sorting posts by timestamp (most recent posts first)
-
-                console.log(`Cut down total posts to ${totalPosts.length} posts.`);
-
-                const MAX_ABOS_PER_INTERVAL = 5; // max. number of people to follow each period
-
-                totalPosts = totalPosts.slice(0, MAX_ABOS_PER_INTERVAL);
-
-                for (post of totalPosts) { // get usernames of all the people, who you are about to follow
-                    post.username = (await client.getMediaByShortcode({ shortcode: post.shortcode })).owner.username;
+                switch (operation) {
+                    case 0:
+                        const HASHTAGS = ['memes', 'funny', 'lol']; // hashtags to look for posts in
+                        documents = await instagramCrawler.getPostsByHashtag(client, HASHTAGS, ALL_ABONNEMENTS);
+                        break;
+                    case 1:
+                        const ACCOUNTS = ['2374691999', '11762801', '2955360060']; // Instagram userIds of accounts to look for followers in
+                        documents = await instagramCrawler.getFollowersOfAccounts(client, ACCOUNTS, ALL_ABONNEMENTS);
+                        break;
+                    default:
+                        throw `There is no operation with the operation-code: ${operation}.`;
                 }
 
                 // follow new people
 
-                for (post of totalPosts) {
-                    await client.follow({ userId: post.ownerID });
-                    console.log(`Followed user with id: ${post.ownerID} on Instagram.`)
+                for (document of documents) {
+                    await client.follow({ userId: document.userId });
+                    console.log(`Followed user with id: ${document.userId} on Instagram.`)
                 }
-                await db.insertAbonnements(totalPosts);
+                if (documents.length !== 0) {
+                    await db.insertAbonnements(documents);
+                } else {
+                    console.log("There are no new abonnements to insert to the database.")
+                }
 
                 // unfollow old people
 
@@ -97,15 +64,15 @@ const client = new Instagram({ username: username, password: password }); // cre
                 for (abo of ALL_ABONNEMENTS) {
                     if (abo.subscriptionTimestamp < (Number(String((new Date()).getTime()).slice(0, -3)) - FOLLOW_TIME * 60 * 60) & abo.active == true) {
                         try {
-                            await client.unfollow({ userId: abo.ownerID });
-                            console.log(`Unfollowed user with id: ${abo.ownerID}, whom you followed since ${(new Date(abo.subscriptionTimestamp * 1000)).toString()} on Instagram.`);
+                            await client.unfollow({ userId: abo.userId });
+                            console.log(`Unfollowed user with id: ${abo.userId}, whom you followed since ${(new Date(abo.subscriptionTimestamp * 1000)).toString()} on Instagram.`);
                         } catch (error) {
                             console.error(error);
                         }
                         try {
                             const followedBack = (await client.getUserByUsername({ username: abo.username })).follows_viewer; // true if user follows your account
                             abo.followedBack = followedBack;
-                        } catch(error) {
+                        } catch (error) {
                             console.log(`Could not detect if user followed back for abonnement: ${abo._id}.`); // probably because the user canged his username or deleted his account
                         }
                         oldAbonnements.push(abo);
