@@ -4,13 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index",
+    "dev": "nodemon index"
   },
   "author": "Konrad Goldammer",
   "license": "ISC",
   "dependencies": {
     "dotenv": "^8.2.0",
     "instagram-web-api": "^2.2.2",
-    "mongodb": "^3.6.5"
+    "mongodb": "^3.6.5",
+    "mongoose": "^6.0.13"
   }
 }
