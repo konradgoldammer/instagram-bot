@@ -51,7 +51,8 @@ const client = new Instagram({ username: username, password: password }); // cre
 
       for (abonnement of abonnements) {
         if (
-          abonnement.date.getTime() < Date.now() - followPeriod * 60 * 60 &&
+          abonnement.date.getTime() <
+            Date.now() - followPeriod * 60 * 60 * 1000 &&
           abonnement.active
         ) {
           await client.unfollow({ userId: abonnement.user.userId });
