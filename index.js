@@ -19,9 +19,7 @@ const client = new Instagram({ username: username, password: password }); // cre
     const { authenticated } = await client.login(); // login to Instagram
 
     if (!authenticated) {
-      return console.log(
-        "Couldn't log into Instagram; Check your credentials!"
-      );
+      throw "Couldn't log into Instagram; Check your credentials!";
     }
 
     console.log(`Logged in as ${username}.`);
@@ -40,7 +38,9 @@ const client = new Instagram({ username: username, password: password }); // cre
 
       // follow new people
       for (user of usersToFollow) {
-        await client.follow({ userId: user.userId });
+        await client.follow({ userId: user.userId }).catch((e) => {
+          throw user;
+        });
         console.log(`Followed user with id: ${user.userId} on Instagram.`);
 
         await new Abonnement({ user }).save(); // Store new abonnement in db
@@ -74,6 +74,9 @@ const client = new Instagram({ username: username, password: password }); // cre
     }
   } catch (e) {
     console.error(e);
+
+    // Kill process
+    mongoose.connection.close();
   }
 })();
 
